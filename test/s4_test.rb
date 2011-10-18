@@ -120,7 +120,7 @@ class S4Test < Test::Unit::TestCase
       begin
         open("http://#{s4.website}/")
       rescue OpenURI::HTTPError => e
-        assert_match /NoSuchWebsiteConfiguration/, e.io.read
+        assert_match /NoSuchKey/, e.io.read
       end
 
       s4.put(StringIO.new("<!DOCTYPE html><html><head><title>Robot Page</title></head><body><h1>Robots!</h1></body></html>", "r"), "index.html", "text/html")
@@ -155,7 +155,7 @@ class S4Test < Test::Unit::TestCase
 
       @s4.policy = :public_read
 
-      assert_equal "abc123", open("http://s3.amazonaws.com/#{TestBucket}/foo.txt").read
+      assert_equal "abc123", open("http://s3.amazonaws.com/#{TestBucket}/foo.txt").read.chomp
     end
   end
 
@@ -171,7 +171,7 @@ class S4Test < Test::Unit::TestCase
 
       foo = open("http://s3.amazonaws.com/#{TestBucket}/foo.txt")
 
-      assert_equal "abc123", foo.read
+      assert_equal "abc123", foo.read.chomp
       assert_equal "text/plain", foo.content_type
     end
 
@@ -180,7 +180,7 @@ class S4Test < Test::Unit::TestCase
 
       foo = open("http://s3.amazonaws.com/#{TestBucket}/foo%20bar.txt")
 
-      assert_equal "abc123", foo.read
+      assert_equal "abc123", foo.read.chomp
       assert_equal "text/plain", foo.content_type
     end
 
@@ -197,7 +197,7 @@ class S4Test < Test::Unit::TestCase
     should "return the URL to the uploaded file" do
       url = @s4.put StringIO.new("zoinks!", "r"), "foo/bar.txt", "text/plain"
       assert_kind_of URI::HTTP, URI.parse(url)
-      assert_equal "zoinks!", open(url).read
+      assert_equal "zoinks!", open(url).read.chomp
     end
   end
 
@@ -210,7 +210,7 @@ class S4Test < Test::Unit::TestCase
       `s3cmd put #{fixture("foo.txt")} s3://#{@s4.bucket}/foo.txt`
       @s4.download("foo.txt", output("foo.txt"))
 
-      assert_equal "abc123", File.read(output("foo.txt"))
+      assert_equal "abc123", File.read(output("foo.txt")).chomp
     end
 
     should "not download non-existent files" do
@@ -229,13 +229,13 @@ class S4Test < Test::Unit::TestCase
       `s3cmd put #{fixture("foo.txt")} s3://#{@s4.bucket}/foo.txt`
 
       @s4.get("foo.txt") do |response|
-        assert_equal "abc123", response.body
+        assert_equal "abc123", response.body.chomp
       end
     end
 
     should "delete object" do
       `s3cmd put #{fixture("foo.txt")} s3://#{@s4.bucket}/foo.txt`
-      @s4.get("foo.txt") { |response| assert_equal "abc123", response.body }
+      @s4.get("foo.txt") { |response| assert_equal "abc123", response.body.chomp }
       @s4.delete("foo.txt")
 
       assert_equal nil, @s4.get("foo.txt")
@@ -244,6 +244,7 @@ class S4Test < Test::Unit::TestCase
     should "return list of items in bucket" do
       `s3cmd del 's3://#{@s4.bucket}/*'`
       `s3cmd del 's3://#{@s4.bucket}/abc/*'`
+      `s3cmd del 's3://#{@s4.bucket}/foo/*'`
 
       `s3cmd put #{fixture("foo.txt")} s3://#{@s4.bucket}/foo.txt`
       `s3cmd put #{fixture("foo.txt")} s3://#{@s4.bucket}/bar.txt`
